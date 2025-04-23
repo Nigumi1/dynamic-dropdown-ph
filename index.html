@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Address Selector - Philippines</title>
+    <!--Bootstrap-->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <!--JQuery-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body class="p-5">
+    <form method="POST" action="">
+        <div class="col-sm-6">
+            <h3>Address Selector - Philippines</h3>
+        </div>
+        <hr>
+        <div class="col-sm-6 mb-3">
+            <label class="form-label">Province *</label>
+            <select name="province" class="form-control form-control-md" id="province"></select>
+            <input type="hidden" class="form-control form-control-md" name="province_text" id="province-text" required>
+        </div>
+        <div class="col-sm-6 mb-3">
+            <label class="form-label">City / Municipality *</label>
+            <select name="city" class="form-control form-control-md" id="city"></select>
+            <input type="hidden" class="form-control form-control-md" name="city_text" id="city-text" required>
+        </div>
+        <div class="col-sm-6 mb-3">
+            <label class="form-label">Barangay *</label>
+            <select name="barangay" class="form-control form-control-md" id="barangay"></select>
+            <input type="hidden" class="form-control form-control-md" name="barangay_text" id="barangay-text" required>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="street-text" class="form-label">Street (Optional)</label>
+            <input type="text" class="form-control form-control-md" name="street_text" id="street-text">
+        </div>
+        <div class="col-md-6">
+            <input type="submit" class="btn btn-success" name="submit">
+        </div>
+    </form>
+</body>
+</html>
+
+<script>
+    $(function () {
+    let provinceDropdown = $('#province');
+    let provinceLoaded = false;
+
+    // === On Province Dropdown Click ===
+    provinceDropdown.on('click', function () {
+        if (provinceLoaded) return;
+
+        provinceDropdown.empty().append('<option selected="true" disabled>Loading provinces...</option>');
+
+        $.ajax({
+            url: 'ph-json/province.json',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                console.log('✅ Province data loaded:', data);
+
+                data.sort((a, b) => a.province_name.localeCompare(b.province_name));
+
+                provinceDropdown.empty().append('<option selected="true" disabled>Choose Province</option>');
+
+                $.each(data, function (key, entry) {
+                    provinceDropdown.append(
+                        $('<option></option>')
+                            .attr('value', entry.province_code)
+                            .text(entry.province_name)
+                    );
+                });
+
+                provinceLoaded = true;
+            },
+            error: function (jqxhr, textStatus, error) {
+                console.error('❌ Failed to load province.json:', textStatus, error);
+                provinceDropdown.empty().append('<option disabled>Error loading provinces</option>');
+            }
+        });
+    });
+
+    // === On Province Change ===
+    $('#province').on('change', function () {
+        let province_code = $(this).val();
+        let province_text = $(this).find("option:selected").text();
+        $('#province-text').val(province_text);
+        $('#city-text').val('');
+        $('#barangay-text').val('');
+
+        let cityDropdown = $('#city');
+        cityDropdown.empty().append('<option selected="true" disabled>Choose City/Municipality</option>');
+
+        let barangayDropdown = $('#barangay');
+        barangayDropdown.empty().append('<option selected="true" disabled>Choose Barangay</option>');
+
+        $.ajax({
+            url: 'ph-json/city.json',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                let cities = data.filter(item => item.province_code === province_code);
+                cities.sort((a, b) => a.city_name.localeCompare(b.city_name));
+
+                $.each(cities, function (key, entry) {
+                    cityDropdown.append(
+                        $('<option></option>')
+                            .attr('value', entry.city_code)
+                            .text(entry.city_name)
+                    );
+                });
+            },
+            error: function (jqxhr, textStatus, error) {
+                console.error('❌ Failed to load city.json:', textStatus, error);
+            }
+        });
+    });
+
+    // === On City Change ===
+    $('#city').on('change', function () {
+        let city_code = $(this).val();
+        let city_text = $(this).find("option:selected").text();
+        $('#city-text').val(city_text);
+        $('#barangay-text').val('');
+
+        let barangayDropdown = $('#barangay');
+        barangayDropdown.empty().append('<option selected="true" disabled>Choose Barangay</option>');
+
+        $.ajax({
+            url: 'ph-json/barangay.json',
+            method: 'GET',
+            dataType: 'json',
+            success: function (data) {
+                let barangays = data.filter(item => item.city_code === city_code);
+                barangays.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
+
+                $.each(barangays, function (key, entry) {
+                    barangayDropdown.append(
+                        $('<option></option>')
+                            .attr('value', entry.brgy_code)
+                            .text(entry.brgy_name)
+                    );
+                });
+            },
+            error: function (jqxhr, textStatus, error) {
+                console.error('❌ Failed to load barangay.json:', textStatus, error);
+            }
+        });
+    });
+
+    // === On Barangay Change ===
+    $('#barangay').on('change', function () {
+        let barangay_text = $(this).find("option:selected").text();
+        $('#barangay-text').val(barangay_text);
+    });
+});
+
+</script>
